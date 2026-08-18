@@ -29,6 +29,13 @@ DEBUG = env_bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 
+# Railway (and similar PaaS) inject the service's own public hostname at
+# runtime - trust it automatically so ALLOWED_HOSTS/CSRF don't need manual
+# updates every time a domain is (re)generated.
+RAILWAY_PUBLIC_DOMAIN = os.getenv("RAILWAY_PUBLIC_DOMAIN", "")
+if RAILWAY_PUBLIC_DOMAIN:
+    ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
+
 
 # Application definition
 
@@ -52,6 +59,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -81,9 +89,17 @@ WSGI_APPLICATION = "inveni.wsgi.application"
 
 
 # Database
-# SQLite by default so the app runs with zero setup. Point DATABASE_URL-style
-# vars at Postgres/MySQL in .env for a real deployment.
-if os.getenv("DB_ENGINE"):
+# SQLite by default so the app runs with zero setup. DATABASE_URL (the
+# convention Railway/Heroku/Render all use, e.g. for a provisioned Postgres
+# plugin) takes priority when present; DB_ENGINE/DB_NAME/etc. are a manual
+# fallback for anything that doesn't speak DATABASE_URL.
+if os.getenv("DATABASE_URL"):
+    import dj_database_url
+
+    DATABASES = {
+        "default": dj_database_url.parse(os.getenv("DATABASE_URL"), conn_max_age=600)
+    }
+elif os.getenv("DB_ENGINE"):
     DATABASES = {
         "default": {
             "ENGINE": os.getenv("DB_ENGINE"),
@@ -120,6 +136,10 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -182,6 +202,15 @@ else:
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@inveni.local")
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "")
+if RAILWAY_PUBLIC_DOMAIN:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RAILWAY_PUBLIC_DOMAIN}")
+
+# Railway (and most PaaS) terminate TLS at a proxy and forward plain HTTP
+# internally - without this, Django never sees the request as secure and
+# SECURE_SSL_REDIRECT would redirect-loop.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Production security headers - opt-in via .env once served over HTTPS.
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", default=False)

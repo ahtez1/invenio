@@ -18,6 +18,8 @@ frontend/out/
 frontend/.env.local
 frontend/tsconfig.tsbuildinfo
 frontend/next-env.d.ts
+frontend/AGENTS.md
+frontend/CLAUDE.md
 
 # Editors / OS
 .DS_Store
