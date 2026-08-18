@@ -135,3 +135,17 @@ class OrderIsolationTests(APITestCase):
         order = Order.objects.get(pk=order_id)
         self.assertEqual(order.status, Order.PAID)
         self.assertIsNotNone(order.paid_at)
+
+    def test_order_detail_includes_event_info_and_per_unit_references(self):
+        self.client.force_authenticate(self.alice)
+        self.client.post("/api/orders/cart-items/", {"ticket_id": self.ticket.id, "quantity": 3})
+        response = self.client.post("/api/orders/orders/checkout/")
+        order_id = response.data["id"]
+
+        response = self.client.get(f"/api/orders/orders/{order_id}/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item = response.data["items"][0]
+        self.assertEqual(item["event_id"], self.ticket.event_id)
+        self.assertEqual(item["event_location"], "Nairobi")
+        self.assertEqual(len(item["references"]), 3)
+        self.assertEqual(len(set(item["references"])), 3)

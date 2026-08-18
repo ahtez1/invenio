@@ -71,6 +71,11 @@ export interface OrderItem {
   ticket_type: string;
   unit_price: string;
   quantity: number;
+  event_id: number | null;
+  event_date: string | null;
+  event_time: string | null;
+  event_location: string | null;
+  references: string[];
 }
 
 export interface Order {

@@ -75,7 +75,7 @@ class OrderViewSet(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        base = Order.objects.prefetch_related("items")
+        base = Order.objects.prefetch_related("items__ticket__event")
         if user.is_staff:
             return base.all()
         return base.filter(user=user)

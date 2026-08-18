@@ -77,12 +77,19 @@ export default function TicketsPage() {
                 <span className="text-sm font-medium">Total</span>
                 <span className="text-sm font-semibold">${order.total}</span>
               </div>
-              {order.status === "pending" && (
+              {order.status === "pending" ? (
                 <Link
                   href={`/checkout/${order.id}`}
                   className="inline-block text-sm font-medium text-brand"
                 >
                   Complete payment →
+                </Link>
+              ) : (
+                <Link
+                  href={`/tickets/${order.id}`}
+                  className="inline-block text-sm font-medium text-brand"
+                >
+                  View ticket details →
                 </Link>
               )}
             </li>

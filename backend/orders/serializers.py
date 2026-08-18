@@ -71,9 +71,44 @@ class CartSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    event_id = serializers.SerializerMethodField()
+    event_date = serializers.SerializerMethodField()
+    event_time = serializers.SerializerMethodField()
+    event_location = serializers.SerializerMethodField()
+    references = serializers.SerializerMethodField()
+
     class Meta:
         model = OrderItem
-        fields = ["id", "event_title", "ticket_type", "unit_price", "quantity"]
+        fields = [
+            "id",
+            "event_title",
+            "ticket_type",
+            "unit_price",
+            "quantity",
+            "event_id",
+            "event_date",
+            "event_time",
+            "event_location",
+            "references",
+        ]
+
+    def get_event_id(self, item):
+        return item.ticket.event_id if item.ticket else None
+
+    def get_event_date(self, item):
+        return item.ticket.event.date if item.ticket else None
+
+    def get_event_time(self, item):
+        return item.ticket.event.time if item.ticket else None
+
+    def get_event_location(self, item):
+        return item.ticket.event.location if item.ticket else None
+
+    def get_references(self, item):
+        # Individual ticket tiers aren't separate DB rows - each unit within
+        # a line item gets a stable, deterministic reference for entry/
+        # display instead of a real per-seat record.
+        return [f"INV-{item.order_id:06d}-{item.id}-{n + 1}" for n in range(item.quantity)]
 
 
 class OrderSerializer(serializers.ModelSerializer):
