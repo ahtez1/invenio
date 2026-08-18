@@ -93,12 +93,29 @@ WSGI_APPLICATION = "inveni.wsgi.application"
 # convention Railway/Heroku/Render all use, e.g. for a provisioned Postgres
 # plugin) takes priority when present; DB_ENGINE/DB_NAME/etc. are a manual
 # fallback for anything that doesn't speak DATABASE_URL.
+_database_url_config = None
 if os.getenv("DATABASE_URL"):
     import dj_database_url
 
-    DATABASES = {
-        "default": dj_database_url.parse(os.getenv("DATABASE_URL"), conn_max_age=600)
-    }
+    try:
+        _database_url_config = dj_database_url.parse(
+            os.getenv("DATABASE_URL"), conn_max_age=600
+        )
+    except ValueError:
+        # A malformed DATABASE_URL (e.g. hand-edited and missing its
+        # postgres:// scheme) used to crash the whole app at import time -
+        # fall through to the other options instead of 500ing on every
+        # request.
+        import sys
+
+        print(
+            "WARNING: DATABASE_URL is set but could not be parsed; "
+            "falling back to DB_ENGINE/SQLite.",
+            file=sys.stderr,
+        )
+
+if _database_url_config:
+    DATABASES = {"default": _database_url_config}
 elif os.getenv("DB_ENGINE"):
     DATABASES = {
         "default": {
