@@ -10,5 +10,8 @@ urlpatterns = [
     path("api/orders/", include("orders.urls")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve user-uploaded media (event photos, profile pictures) regardless of
+# DEBUG. django.views.static.serve isn't the fastest option at real scale,
+# but this app has no CDN/object storage configured, so it's this or 404s
+# in production - fine at this app's traffic level.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
