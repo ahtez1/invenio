@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "http", hostname: "localhost", port: "8000" },
       { protocol: "http", hostname: "127.0.0.1", port: "8000" },
+      // Railway assigns a *.up.railway.app subdomain per service/deploy -
+      // wildcard it rather than hardcoding the current one.
+      { protocol: "https", hostname: "*.up.railway.app" },
     ],
   },
 };
